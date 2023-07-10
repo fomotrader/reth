@@ -41,6 +41,14 @@ impl TxState {
         *self >= TxState::PENDING_POOL_BITS
     }
 
+    /// The state of a transaction is considered `queued` if the transaction has:
+    ///   - _No_ parked ancestors
+    ///   - _Missing_ nonce or not enough balance
+    #[inline]
+    pub(crate) fn is_queued(&self) -> bool {
+        *self < TxState::BASE_FEE_POOL_BITS && *self >= TxState::QUEUED_POOL_BITS
+    }
+
     /// Returns `true` if the transaction has a nonce gap.
     #[inline]
     pub(crate) fn has_nonce_gap(&self) -> bool {
@@ -94,8 +102,7 @@ impl From<TxState> for SubPool {
     fn from(value: TxState) -> Self {
         if value.is_pending() {
             return SubPool::Pending
-        }
-        if value < TxState::BASE_FEE_POOL_BITS {
+        } else if value.is_queued() {
             return SubPool::Queued
         }
         SubPool::BaseFee
